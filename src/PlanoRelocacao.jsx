@@ -645,6 +645,7 @@ html[data-theme="dark"]{
   .nz{padding:20px 16px 46px;}
   .nz-nav-inner{padding:9px 14px; gap:8px;}
   .nz-nav-filter{ -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent); }
+  .nz-nav-filter .nz-filter-label{display:none;}
   .nz-props{grid-template-columns:1fr;}
   .nz-prop-label{flex-basis:104px;}
   .nz-theme-label{display:none;}
