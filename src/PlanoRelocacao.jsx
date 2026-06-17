@@ -125,9 +125,9 @@ const THEMES = [
   { key: "dark", label: "Escuro", Icon: MoonIcon },
 ];
 
-function ThemeToggle({ theme, setTheme }) {
+function ThemeToggle({ theme, setTheme, mini }) {
   return (
-    <div className="nz-theme" role="group" aria-label="Tema da página">
+    <div className={"nz-theme" + (mini ? " mini" : "")} role="group" aria-label="Tema da página">
       {THEMES.map(({ key, label, Icon }) => {
         const on = theme === key;
         return (
@@ -367,9 +367,28 @@ export default function PlanoRelocacao() {
     <div className="nz">
       <style>{css}</style>
 
-      <div className="nz-topbar">
-        <ThemeToggle theme={theme} setTheme={setTheme} />
-      </div>
+      <nav className="nz-nav">
+        <div className="nz-nav-filter">
+          <span className="nz-filter-label">Assuntos</span>
+          {Object.entries(TRACKS).map(([k, t]) => {
+            const on = active.has(k);
+            const c = t[resolved];
+            return (
+              <button
+                key={k}
+                className={`nz-tag-btn ${on ? "on" : "off"}`}
+                aria-pressed={on}
+                onClick={() => toggle(k)}
+                style={on ? { background: c.bg, color: c.fg } : undefined}
+              >
+                <span className="nz-tag-dot" style={{ background: on ? c.strong : offDot }} />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <ThemeToggle theme={theme} setTheme={setTheme} mini />
+      </nav>
 
       <h1 className="nz-title">✈️ Plano de Voo: Brasil → EUA</h1>
       <p className="nz-lead">
@@ -397,26 +416,6 @@ export default function PlanoRelocacao() {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="nz-filter">
-        <span className="nz-filter-label">Assuntos</span>
-        {Object.entries(TRACKS).map(([k, t]) => {
-          const on = active.has(k);
-          const c = t[resolved];
-          return (
-            <button
-              key={k}
-              className={`nz-tag-btn ${on ? "on" : "off"}`}
-              aria-pressed={on}
-              onClick={() => toggle(k)}
-              style={on ? { background: c.bg, color: c.fg } : undefined}
-            >
-              <span className="nz-tag-dot" style={{ background: on ? c.strong : offDot }} />
-              {t.label}
-            </button>
-          );
-        })}
       </div>
 
       <ol className="nz-timeline">
@@ -533,19 +532,35 @@ html[data-theme="dark"]{
 .nz{
   font-family:'Inter',ui-sans-serif,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
   color:var(--text); background:var(--bg); line-height:1.5;
-  max-width:820px; margin:0 auto; padding:24px clamp(18px,4vw,40px) 60px;
+  max-width:820px; margin:0 auto; padding:0 clamp(18px,4vw,40px) 60px;
   -webkit-font-smoothing:antialiased; position:relative;
   transition:background-color .2s ease, color .2s ease;
 }
 .nz *{box-sizing:border-box;}
 
-.nz-topbar{display:flex; justify-content:flex-end; margin-bottom:14px;}
+.nz-nav{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; flex-wrap:wrap; gap:10px 14px;
+  padding:11px clamp(18px,4vw,40px);
+  margin:0 calc(-1 * clamp(18px,4vw,40px)) 26px;
+  background:var(--bg);
+  border-bottom:1px solid var(--divider);
+  transition:background-color .2s ease, border-color .2s ease;
+}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .nz-nav{ background:color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+}
+.nz-nav-filter{display:flex; flex-wrap:wrap; align-items:center; gap:7px; flex:1 1 auto; min-width:0;}
+.nz-nav .nz-theme{flex:0 0 auto; margin-left:auto;}
+
 .nz-theme{display:inline-flex; align-items:center; gap:2px; padding:3px; background:var(--panel); border:1px solid var(--divider); border-radius:9px; transition:background-color .2s ease, border-color .2s ease;}
 .nz-theme-btn{display:inline-flex; align-items:center; gap:6px; border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:500; color:var(--muted); padding:5px 10px; border-radius:6px; transition:background-color .14s ease, color .14s ease;}
 .nz-theme-btn svg{width:15px; height:15px; flex:0 0 auto;}
 .nz-theme-btn:hover{color:var(--text);}
 .nz-theme-btn.on{background:var(--seg-on); color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.14);}
 .nz-theme-btn:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+.nz-theme.mini .nz-theme-label{display:none;}
+.nz-theme.mini .nz-theme-btn{padding:5px 8px;}
 
 .nz-title{font-size:clamp(28px,5vw,40px); font-weight:700; letter-spacing:-.02em; line-height:1.15; margin:0 0 12px;}
 .nz-lead{font-size:15px; color:var(--secondary); max-width:670px; margin:0 0 26px;}
@@ -565,7 +580,6 @@ html[data-theme="dark"]{
 .nz-callout-title{font-size:13.5px; font-weight:600; margin-bottom:3px;}
 .nz-callout-text{font-size:13.5px; color:var(--secondary);}
 
-.nz-filter{display:flex; flex-wrap:wrap; align-items:center; gap:7px; padding-bottom:22px; margin-bottom:8px; border-bottom:1px solid var(--divider);}
 .nz-filter-label{font-size:12px; color:var(--faint); margin-right:4px; text-transform:uppercase; letter-spacing:.06em;}
 .nz-tag-btn{display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none; font-family:inherit;
   font-size:13px; font-weight:500; padding:4px 11px; border-radius:6px; background:var(--btn-off-bg); color:var(--btn-off-fg); transition:opacity .15s, transform .15s, background-color .2s ease, color .2s ease;}
@@ -613,7 +627,7 @@ html[data-theme="dark"]{
 .nz-foot{font-size:12.5px; color:var(--faint); line-height:1.6; margin-top:30px; padding-top:18px; border-top:1px solid var(--divider);}
 
 @media (max-width:560px){
-  .nz{padding:18px 16px 46px;}
+  .nz{padding:0 16px 46px;}
   .nz-props{grid-template-columns:1fr;}
   .nz-prop-label{flex-basis:104px;}
   .nz-theme-label{display:none;}
