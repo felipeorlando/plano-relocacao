@@ -3,6 +3,7 @@ import { useState } from "react";
 /**
  * Plano de Relocação Brasil → EUA — visual limpo, inspirado no Notion.
  * Cores por assunto, emojis nos títulos, callouts para o caminho crítico.
+ * Dólar e Score são trilhos SEPARADOS de propósito.
  */
 
 const TRACKS = {
@@ -10,7 +11,8 @@ const TRACKS = {
   dogs: { label: "Cães", strong: "#448361", bg: "#DBEDDB", fg: "#1C3829" },
   casa: { label: "Moradia", strong: "#9065B0", bg: "#E8DEEE", fg: "#492F64" },
   carro: { label: "Carro", strong: "#D9730D", bg: "#FADEC9", fg: "#5C3B23" },
-  grana: { label: "Dólar & Score", strong: "#CB912F", bg: "#FDECC8", fg: "#4D3C0E" },
+  dolar: { label: "Dólar", strong: "#CB912F", bg: "#FDECC8", fg: "#4D3C0E" },
+  score: { label: "Score", strong: "#C14C8A", bg: "#F5E0E9", fg: "#5C1A36" },
 };
 
 const PROPS = [
@@ -22,29 +24,31 @@ const PROPS = [
 
 const CALLOUTS = [
   {
-    emoji: "🦴",
-    tone: "warn",
-    title: "Caminho crítico — cães",
+    emoji: "🦴", tone: "warn", title: "Caminho crítico — cães",
     text: "Microchip (antes da vacina) → vacina antirrábica → coletar sangue ≥30 dias depois → laboratório aprovado pela CDC → ≥28 dias antes de entrar. Se o titer reprovar, volta +30 dias. É o trilho mais longo de todos — por isso começa já na semana 0.",
   },
   {
-    emoji: "⏰",
-    tone: "warn",
-    title: "Caminho crítico — janela EB-2",
+    emoji: "⏰", tone: "warn", title: "Caminho crítico — janela EB-2",
     text: "O I-485 só pode ser protocolado e aprovado enquanto a priority date está Current (risco de retroceder por volta de 30/set/2026). A corrida é entrar com o O-1 e protocolar dentro dessa janela.",
+  },
+  {
+    emoji: "💳", tone: "info", title: "Como o Score funciona (pra não confundir)",
+    text: "Nenhum cartão brasileiro constrói teu score americano — eles só alimentam tua APROVAÇÃO via Nova Credit (leitura do Serasa). O FICO só começa quando você chega com o SSN, que o O-1 te dá. O Amex BR é OPCIONAL: dá um cartão premium via Global Transfer, mas o plano funciona sem ele, via Chase + Nova Credit. Dólar e Score são trilhos separados: render dólar não toca no score.",
   },
 ];
 
 const LEGS = [
   {
     code: "00", emoji: "🚀", title: "Ignição", window: "Agora · semana 0–1", now: true,
-    note: "Daqui uma semana: o contrato com a D4U vira a trilha O-1A.",
+    note: "Daqui uma semana: o contrato com a D4U vira a trilha O-1A. Do Brasil, o jogo é PREPARAR — o score só começa na chegada.",
     tasks: [
       { track: "imig", text: "Pivotar o contrato D4U para a trilha O-1A. Pausar a via consular do EB-2; o I-140 NIW (já aprovado) fica preservado como base do futuro I-485." },
       { track: "imig", text: "Reunir evidências O-1A: contribuição original (PR no RepoBar/OpenClaw), alta remuneração, papel crítico (GraphQL Router PayPal/Venmo). Disparar IEEE Senior Member como 4º critério." },
       { track: "dogs", text: "Confirmar microchip ISO em cada um dos 4 cães — implantado ANTES da vacina antirrábica, senão a vacina é inválida.", crit: true },
       { track: "dogs", text: "Verificar vacina antirrábica válida e atualizada em todos. Maior lead time do plano — não dá pra deixar pra depois." },
-      { track: "grana", text: "Tirar um Amex BR agora (maturação de 3 meses para destravar o Global Transfer). Abrir Zolve. Abrir corretora US (IBKR GlobalTrader ou moomoo, via W-8BEN) e começar a dolarizar em SGOV." },
+      { track: "dolar", text: "Abrir a Wise e ativar o Rende+ em dólar (~3,5% num fundo de Tesouro americano da BlackRock, liquidez diária, zero complexidade de corretora). Receber o pagamento dos clientes US direto em USD pelos dados de conta americana da Wise (routing 026 / CFSB) — sem conversão e sem IOF na entrada. É o 'deixa rendendo e esquece'." },
+      { track: "score", text: "OPCIONAL: tirar um Amex BR agora. Ele não constrói score, mas maturando 3 meses destrava o Global Transfer (cartão premium na chegada). Se for hassle/custo, dá pra pular — o plano funciona sem." },
+      { track: "score", text: "Manter o Serasa limpo: pagar TODOS os cartões brasileiros (Visa/Master/Amex) em dia. É esse histórico que o Nova Credit vai ler pra te aprovar nos EUA." },
     ],
   },
   {
@@ -55,7 +59,8 @@ const LEGS = [
       { track: "imig", text: "Agendar entrevista de visto NÃO-imigrante (DS-160) no consulado. O O-1 não é atingido pela pausa de visto de imigrante do Brasil." },
       { track: "dogs", text: "Titer antirrábico: coletar sangue ≥30 dias após a vacina e enviar a laboratório aprovado pela CDC. Coleta ≥28 dias antes da entrada. Se reprovar, revacina e recoleta 30 dias depois.", crit: true },
       { track: "dogs", text: "Reservar vaga em instalação registrada pela CDC no aeroporto de chegada (exame na chegada). 4 cães = capacidade e custo, reservar cedo." },
-      { track: "grana", text: "Manter o caixa rendendo na corretora. Pagamentos limpos no Amex BR para a relação maturar bonito." },
+      { track: "dolar", text: "Manter o caixa rendendo no Rende+ da Wise. Sem ação extra — é piloto automático." },
+      { track: "score", text: "Seguir com pagamentos limpos nos cartões BR e o Amex BR maturando (se tirou). Tudo isso alimenta a aprovação futura via Nova Credit." },
     ],
   },
   {
@@ -71,13 +76,15 @@ const LEGS = [
   },
   {
     code: "03", emoji: "🛬", title: "Em solo — ajuste de status", window: "≈ mês 3–5",
-    note: "Corrida contra a janela EB-2. Aqui o relógio do green card destrava.",
+    note: "Corrida contra a janela EB-2. E aqui o SSN finalmente destrava o trilho de score.",
     tasks: [
       { track: "imig", text: "Protocolar o I-485 (adjustment of status) com base no I-140 NIW aprovado, dentro da janela EB-2 ROW Current. Pedir EAD + Advance Parole no mesmo combo.", crit: true },
-      { track: "imig", text: "Obter o SSN (via O-1)." },
-      { track: "grana", text: "Disparar o Amex US via Global Transfer (usando o Amex BR maturado). Atualizar a corretora para residente (vira W-9). Abrir um 2º cartão com o SSN → 2–3 tradelines." },
-      { track: "carro", text: "Pré-aprovação em credit union ou lender de imigrante (Nova Credit), 20%+ de entrada → financiar um Kia modesto. Não torrar o caixa à vista." },
+      { track: "imig", text: "Obter o SSN (via O-1). É ELE que destrava a construção de score — antes dele, nenhum cartão pontua teu FICO." },
+      { track: "score", text: "Com o SSN: abrir um cartão Chase optando pelo Nova Credit. Ele importa teu Serasa, te aprova com limite real apesar do arquivo americano em branco, e reporta aos 3 bureaus desde o dia 1. Este é o MOTOR do FICO." },
+      { track: "score", text: "Se tirou o Amex BR: disparar o Global Transfer → Amex US premium + relacionamento Amex, em paralelo. Bônus, não obrigatório." },
+      { track: "carro", text: "Pré-aprovação em credit union ou lender de imigrante (Nova Credit), 20%+ de entrada → financiar um Kia modesto. Não torrar o caixa à vista — o Kia também vira tradeline parcelada (credit mix)." },
       { track: "casa", text: "Caçar o aluguel longo: casa de landlord particular + depósito reforçado + garantidor (TheGuarantors / Insurent) + carta de renda. Atenção a HOA e zona de enchente/seguro na Flórida." },
+      { track: "dolar", text: "Abrir uma conta-corrente americana como 'hub de cash' — priorizar a maior rede de ATMs sem tarifa (Chase / BofA). Puxar da Wise por ACH (USD→USD, grátis e sem conversão) quando precisar de dinheiro vivo; a mesma conta serve de relacionamento pro mortgage. (Schwab se quiser banco + corretora juntos.)" },
     ],
   },
   {
@@ -86,8 +93,9 @@ const LEGS = [
     tasks: [
       { track: "imig", text: "EAD + Advance Parole na mão → trabalhar para qualquer um e viajar livremente." },
       { track: "imig", text: "Aos 180 dias de I-485 pendente → portabilidade AC21. A partir daqui você fica de fato independente do Raavi / SocialLadder." },
+      { track: "score", text: "Manter utilização baixa (abaixo de ~10% do limite) e tudo pago em dia. Um 2º cartão + o financiamento do Kia engrossam o arquivo e aceleram rumo aos 700+ — otimização de velocidade pro mortgage, não necessidade." },
       { track: "carro", text: "Refinanciar o Kia quando o FICO subir (refi de carro é trivial e comum)." },
-      { track: "grana", text: "Seguir construindo score: utilização baixa, tudo pago em dia. Caixa em USD rendendo no SGOV." },
+      { track: "dolar", text: "Regime de cruzeiro: Wise rendendo + cartão pro dia a dia; conta-corrente US como hub de cash (ATMs grátis) abastecida por ACH da Wise sem conversão." },
     ],
   },
   {
@@ -197,8 +205,8 @@ export default function PlanoRelocacao() {
 
       <p className="nz-foot">
         Dois prazos mandam no plano: a cadeia do titer dos cães (longa, começa já) e a janela EB-2 Current para o I-485.
-        Números de USCIS e regras da CDC mudam — confirme os exatos com a D4U, o vet/autoridade e a companhia aérea.
-        É um mapa de execução, não aconselhamento jurídico ou tributário.
+        O score só arranca na chegada, com o SSN. Números de USCIS e regras da CDC mudam — confirme os exatos com a D4U,
+        o vet/autoridade e a companhia aérea. É um mapa de execução, não aconselhamento jurídico ou tributário.
       </p>
     </div>
   );
@@ -230,6 +238,7 @@ const css = `
 .nz-callouts{display:flex; flex-direction:column; gap:10px; margin-bottom:30px;}
 .nz-callout{display:flex; gap:12px; padding:14px 16px; border-radius:10px; background:var(--panel);}
 .nz-callout.warn{background:#FBEEE6;}
+.nz-callout.info{background:#EEF1F4;}
 .nz-callout-emoji{font-size:18px; line-height:1.4; flex:0 0 auto;}
 .nz-callout-title{font-size:13.5px; font-weight:600; margin-bottom:3px;}
 .nz-callout-text{font-size:13.5px; color:#5b5a56;}
