@@ -364,32 +364,35 @@ export default function PlanoRelocacao() {
     });
 
   return (
-    <div className="nz">
+    <>
       <style>{css}</style>
 
       <nav className="nz-nav">
-        <div className="nz-nav-filter">
-          <span className="nz-filter-label">Assuntos</span>
-          {Object.entries(TRACKS).map(([k, t]) => {
-            const on = active.has(k);
-            const c = t[resolved];
-            return (
-              <button
-                key={k}
-                className={`nz-tag-btn ${on ? "on" : "off"}`}
-                aria-pressed={on}
-                onClick={() => toggle(k)}
-                style={on ? { background: c.bg, color: c.fg } : undefined}
-              >
-                <span className="nz-tag-dot" style={{ background: on ? c.strong : offDot }} />
-                {t.label}
-              </button>
-            );
-          })}
+        <div className="nz-nav-inner">
+          <div className="nz-nav-filter">
+            <span className="nz-filter-label">Assuntos</span>
+            {Object.entries(TRACKS).map(([k, t]) => {
+              const on = active.has(k);
+              const c = t[resolved];
+              return (
+                <button
+                  key={k}
+                  className={`nz-tag-btn ${on ? "on" : "off"}`}
+                  aria-pressed={on}
+                  onClick={() => toggle(k)}
+                  style={on ? { background: c.bg, color: c.fg } : undefined}
+                >
+                  <span className="nz-tag-dot" style={{ background: on ? c.strong : offDot }} />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+          <ThemeToggle theme={theme} setTheme={setTheme} mini />
         </div>
-        <ThemeToggle theme={theme} setTheme={setTheme} mini />
       </nav>
 
+      <div className="nz">
       <h1 className="nz-title">✈️ Plano de Voo: Brasil → EUA</h1>
       <p className="nz-lead">
         Entrar com o <b>O-1A</b> (não afetado pela pausa consular), peticionado pela <b>sua própria LLC</b>, e fazer o
@@ -463,7 +466,8 @@ export default function PlanoRelocacao() {
         chegada, com o SSN. Números de USCIS, regras da CDC e prazos da Flórida mudam — confirme os exatos com a D4U, o
         vet/autoridade, a companhia aérea e o DMV. É um mapa de execução, não aconselhamento jurídico, médico ou tributário.
       </p>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -532,17 +536,14 @@ html[data-theme="dark"]{
 .nz{
   font-family:'Inter',ui-sans-serif,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
   color:var(--text); background:var(--bg); line-height:1.5;
-  max-width:820px; margin:0 auto; padding:0 clamp(18px,4vw,40px) 60px;
+  max-width:820px; margin:0 auto; padding:26px clamp(18px,4vw,40px) 60px;
   -webkit-font-smoothing:antialiased; position:relative;
   transition:background-color .2s ease, color .2s ease;
 }
 .nz *{box-sizing:border-box;}
 
 .nz-nav{
-  position:sticky; top:0; z-index:50;
-  display:flex; align-items:center; flex-wrap:wrap; gap:10px 14px;
-  padding:11px clamp(18px,4vw,40px);
-  margin:0 calc(-1 * clamp(18px,4vw,40px)) 26px;
+  position:sticky; top:0; z-index:50; width:100%;
   background:var(--bg);
   border-bottom:1px solid var(--divider);
   transition:background-color .2s ease, border-color .2s ease;
@@ -550,8 +551,22 @@ html[data-theme="dark"]{
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .nz-nav{ background:color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
 }
-.nz-nav-filter{display:flex; flex-wrap:wrap; align-items:center; gap:7px; flex:1 1 auto; min-width:0;}
-.nz-nav .nz-theme{flex:0 0 auto; margin-left:auto;}
+.nz-nav-inner{
+  max-width:820px; margin:0 auto;
+  display:flex; align-items:center; gap:10px;
+  padding:10px clamp(18px,4vw,40px);
+}
+.nz-nav-filter{
+  display:flex; flex-wrap:nowrap; align-items:center; gap:7px;
+  flex:1 1 auto; min-width:0;
+  overflow-x:auto; overflow-y:hidden;
+  padding-block:6px; margin-block:-6px;
+  scrollbar-width:none; -ms-overflow-style:none;
+  -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain;
+}
+.nz-nav-filter::-webkit-scrollbar{ display:none; height:0; }
+.nz-nav-filter > *{ flex:0 0 auto; }
+.nz-nav .nz-theme{ flex:0 0 auto; }
 
 .nz-theme{display:inline-flex; align-items:center; gap:2px; padding:3px; background:var(--panel); border:1px solid var(--divider); border-radius:9px; transition:background-color .2s ease, border-color .2s ease;}
 .nz-theme-btn{display:inline-flex; align-items:center; gap:6px; border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:500; color:var(--muted); padding:5px 10px; border-radius:6px; transition:background-color .14s ease, color .14s ease;}
@@ -580,8 +595,8 @@ html[data-theme="dark"]{
 .nz-callout-title{font-size:13.5px; font-weight:600; margin-bottom:3px;}
 .nz-callout-text{font-size:13.5px; color:var(--secondary);}
 
-.nz-filter-label{font-size:12px; color:var(--faint); margin-right:4px; text-transform:uppercase; letter-spacing:.06em;}
-.nz-tag-btn{display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none; font-family:inherit;
+.nz-filter-label{font-size:12px; color:var(--faint); margin-right:4px; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap;}
+.nz-tag-btn{display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none; font-family:inherit; white-space:nowrap;
   font-size:13px; font-weight:500; padding:4px 11px; border-radius:6px; background:var(--btn-off-bg); color:var(--btn-off-fg); transition:opacity .15s, transform .15s, background-color .2s ease, color .2s ease;}
 .nz-tag-btn.off{opacity:.6;}
 .nz-tag-btn:hover{transform:translateY(-1px); opacity:1;}
@@ -627,7 +642,9 @@ html[data-theme="dark"]{
 .nz-foot{font-size:12.5px; color:var(--faint); line-height:1.6; margin-top:30px; padding-top:18px; border-top:1px solid var(--divider);}
 
 @media (max-width:560px){
-  .nz{padding:0 16px 46px;}
+  .nz{padding:20px 16px 46px;}
+  .nz-nav-inner{padding:9px 14px; gap:8px;}
+  .nz-nav-filter{ -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent); }
   .nz-props{grid-template-columns:1fr;}
   .nz-prop-label{flex-basis:104px;}
   .nz-theme-label{display:none;}
