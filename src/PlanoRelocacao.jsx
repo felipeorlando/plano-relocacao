@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FloatingArrow,
   FloatingPortal,
@@ -25,16 +25,19 @@ import {
  * Peticionário do O-1: a própria LLC (auto-patrocínio) — sem empregador terceiro.
  * Tooltips via @floating-ui/react: portal + flip/shift (não vazam da tela),
  * hover + foco + toque + Esc/clique-fora pra fechar.
+ * Tema claro/sistema/escuro (padrão: sistema), no estilo do dark mode do Notion.
  */
 
+// Cada trilha tem uma paleta para o tema claro e outra para o escuro
+// (tags do Notion no escuro = fundo escuro dessaturado + texto claro).
 const TRACKS = {
-  imig: { label: "Imigração", strong: "#337EA9", bg: "#D3E5EF", fg: "#183347" },
-  dogs: { label: "Cães", strong: "#448361", bg: "#DBEDDB", fg: "#1C3829" },
-  casa: { label: "Moradia", strong: "#9065B0", bg: "#E8DEEE", fg: "#492F64" },
-  carro: { label: "Carro", strong: "#D9730D", bg: "#FADEC9", fg: "#5C3B23" },
-  dolar: { label: "Dólar", strong: "#CB912F", bg: "#FDECC8", fg: "#4D3C0E" },
-  score: { label: "Score", strong: "#C14C8A", bg: "#F5E0E9", fg: "#5C1A36" },
-  setup: { label: "Setup", strong: "#2F9E9B", bg: "#DCEEED", fg: "#1C3D3C" },
+  imig: { label: "Imigração", light: { strong: "#337EA9", bg: "#D3E5EF", fg: "#183347" }, dark: { strong: "#5E9CC4", bg: "#1B3443", fg: "#A7CCE3" } },
+  dogs: { label: "Cães", light: { strong: "#448361", bg: "#DBEDDB", fg: "#1C3829" }, dark: { strong: "#6BAF87", bg: "#1E3A2B", fg: "#A8D5B9" } },
+  casa: { label: "Moradia", light: { strong: "#9065B0", bg: "#E8DEEE", fg: "#492F64" }, dark: { strong: "#B08AC9", bg: "#352843", fg: "#D2BCE3" } },
+  carro: { label: "Carro", light: { strong: "#D9730D", bg: "#FADEC9", fg: "#5C3B23" }, dark: { strong: "#E0934A", bg: "#43301C", fg: "#E9BD93" } },
+  dolar: { label: "Dólar", light: { strong: "#CB912F", bg: "#FDECC8", fg: "#4D3C0E" }, dark: { strong: "#D8B257", bg: "#403515", fg: "#E5CA86" } },
+  score: { label: "Score", light: { strong: "#C14C8A", bg: "#F5E0E9", fg: "#5C1A36" }, dark: { strong: "#D17BA8", bg: "#412336", fg: "#E6ADCB" } },
+  setup: { label: "Setup", light: { strong: "#2F9E9B", bg: "#DCEEED", fg: "#1C3D3C" }, dark: { strong: "#5CC0BD", bg: "#163A39", fg: "#9AD6D3" } },
 };
 
 // Glossário: termos pouco comuns p/ BR ou de processo migratório.
@@ -79,6 +82,73 @@ const GLOSSARY = {
 function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 const TERMS = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
 const TERM_RE = new RegExp("(" + TERMS.map(escapeRe).join("|") + ")", "g");
+
+/* ---------- Tema ---------- */
+
+const STORAGE_KEY = "nz-theme";
+
+function readTheme() {
+  try { return localStorage.getItem(STORAGE_KEY) || "system"; } catch { return "system"; }
+}
+function writeTheme(v) {
+  try { localStorage.setItem(STORAGE_KEY, v); } catch { /* ignora (modo privado) */ }
+}
+function systemDark() {
+  return typeof window !== "undefined" && !!window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function resolveTheme(t) {
+  return t === "system" ? (systemDark() ? "dark" : "light") : t;
+}
+
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+  </svg>
+);
+const MonitorIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="3" width="20" height="14" rx="2" />
+    <path d="M8 21h8M12 17v4" />
+  </svg>
+);
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+const THEMES = [
+  { key: "light", label: "Claro", Icon: SunIcon },
+  { key: "system", label: "Sistema", Icon: MonitorIcon },
+  { key: "dark", label: "Escuro", Icon: MoonIcon },
+];
+
+function ThemeToggle({ theme, setTheme }) {
+  return (
+    <div className="nz-theme" role="group" aria-label="Tema da página">
+      {THEMES.map(({ key, label, Icon }) => {
+        const on = theme === key;
+        return (
+          <button
+            key={key}
+            type="button"
+            className={"nz-theme-btn" + (on ? " on" : "")}
+            aria-pressed={on}
+            title={label}
+            onClick={() => setTheme(key)}
+          >
+            <Icon />
+            <span className="nz-theme-label">{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------- Tooltips ---------- */
 
 function Term({ term, def }) {
   const [open, setOpen] = useState(false);
@@ -129,7 +199,7 @@ function Term({ term, def }) {
             {...getFloatingProps()}
           >
             {def}
-            <FloatingArrow ref={arrowRef} context={context} fill="#2B2A28" tipRadius={1} />
+            <FloatingArrow ref={arrowRef} context={context} className="term-arrow" fill="#2B2A28" tipRadius={1} />
           </span>
         </FloatingPortal>
       )}
@@ -263,7 +333,28 @@ const LEGS = [
 
 export default function PlanoRelocacao() {
   const [active, setActive] = useState(new Set(Object.keys(TRACKS)));
+  const [theme, setTheme] = useState(readTheme);
+  const [resolved, setResolved] = useState(() => resolveTheme(readTheme()));
   const ctx = { used: new Set() };
+
+  // Aplica o tema no <html>, persiste e segue o sistema quando em "system".
+  useEffect(() => {
+    writeTheme(theme);
+    const apply = () => {
+      const r = resolveTheme(theme);
+      setResolved(r);
+      document.documentElement.setAttribute("data-theme", r);
+    };
+    apply();
+    if (theme === "system" && window.matchMedia) {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const onChange = () => apply();
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    }
+  }, [theme]);
+
+  const offDot = resolved === "dark" ? "#4A4A4A" : "#C7C6C2";
 
   const toggle = (k) =>
     setActive((prev) => {
@@ -275,6 +366,10 @@ export default function PlanoRelocacao() {
   return (
     <div className="nz">
       <style>{css}</style>
+
+      <div className="nz-topbar">
+        <ThemeToggle theme={theme} setTheme={setTheme} />
+      </div>
 
       <h1 className="nz-title">✈️ Plano de Voo: Brasil → EUA</h1>
       <p className="nz-lead">
@@ -308,15 +403,16 @@ export default function PlanoRelocacao() {
         <span className="nz-filter-label">Assuntos</span>
         {Object.entries(TRACKS).map(([k, t]) => {
           const on = active.has(k);
+          const c = t[resolved];
           return (
             <button
               key={k}
               className={`nz-tag-btn ${on ? "on" : "off"}`}
               aria-pressed={on}
               onClick={() => toggle(k)}
-              style={on ? { background: t.bg, color: t.fg } : undefined}
+              style={on ? { background: c.bg, color: c.fg } : undefined}
             >
-              <span className="nz-tag-dot" style={{ background: on ? t.strong : "#C7C6C2" }} />
+              <span className="nz-tag-dot" style={{ background: on ? c.strong : offDot }} />
               {t.label}
             </button>
           );
@@ -340,18 +436,21 @@ export default function PlanoRelocacao() {
                 <h2 className="nz-leg-title"><span className="nz-emoji-h">{leg.emoji}</span>{leg.title}</h2>
                 {leg.note && <p className="nz-leg-note">{withTerms(leg.note, ctx, leg.code + "n")}</p>}
                 <ul className="nz-items">
-                  {visible.map((t, i) => (
-                    <li className="nz-item" key={i}>
-                      <span className="nz-bullet" style={{ background: TRACKS[t.track].strong }} />
-                      <span className="nz-item-text">
-                        <span className="nz-tag" style={{ background: TRACKS[t.track].bg, color: TRACKS[t.track].fg }}>
-                          {TRACKS[t.track].label}
+                  {visible.map((t, i) => {
+                    const c = TRACKS[t.track][resolved];
+                    return (
+                      <li className="nz-item" key={i}>
+                        <span className="nz-bullet" style={{ background: c.strong }} />
+                        <span className="nz-item-text">
+                          <span className="nz-tag" style={{ background: c.bg, color: c.fg }}>
+                            {TRACKS[t.track].label}
+                          </span>
+                          {withTerms(t.text, ctx, leg.code + "t" + i)}
+                          {t.crit && <span className="nz-crit">🔴 caminho crítico</span>}
                         </span>
-                        {withTerms(t.text, ctx, leg.code + "t" + i)}
-                        {t.crit && <span className="nz-crit">🔴 caminho crítico</span>}
-                      </span>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </li>
@@ -372,41 +471,107 @@ export default function PlanoRelocacao() {
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+:root{
+  --bg:#ffffff;
+  --text:#37352F;
+  --muted:#787774;
+  --faint:#9B9A97;
+  --secondary:#5b5a56;
+  --item:#2f2e2b;
+  --divider:#E9E9E7;
+  --hover:#F1F1EF;
+  --panel:#F7F6F3;
+  --btn-off-bg:#F1F1EF;
+  --btn-off-fg:#787774;
+  --node-bg:#ffffff;
+  --node-border:#C7C6C2;
+  --dest:#37352F;
+  --now:#337EA9;
+  --now-strong:#0B6E99;
+  --now-tag-bg:#D3E5EF;
+  --now-glow:rgba(51,126,169,.14);
+  --callout-warn:#FBEEE6;
+  --callout-info:#EEF1F4;
+  --crit-fg:#B4332B;
+  --crit-bg:#FBE4E1;
+  --tooltip-bg:#2B2A28;
+  --tooltip-fg:#ffffff;
+  --term-underline:#9B9A97;
+  --focus:#337EA9;
+  --seg-on:#ffffff;
+}
+html[data-theme="dark"]{
+  --bg:#191919;
+  --text:#D4D4D4;
+  --muted:#9B9B9B;
+  --faint:#6F6F6F;
+  --secondary:#ABABAB;
+  --item:#D4D4D4;
+  --divider:#2C2C2C;
+  --hover:#252525;
+  --panel:#202020;
+  --btn-off-bg:#2A2A2A;
+  --btn-off-fg:#9B9B9B;
+  --node-bg:#191919;
+  --node-border:#4A4A4A;
+  --dest:#D4D4D4;
+  --now:#4F9BC4;
+  --now-strong:#7CBCE0;
+  --now-tag-bg:#16344A;
+  --now-glow:rgba(79,155,196,.22);
+  --callout-warn:#2C2520;
+  --callout-info:#1D2329;
+  --crit-fg:#FF8B80;
+  --crit-bg:#3A2422;
+  --tooltip-bg:#373737;
+  --tooltip-fg:#EDEDED;
+  --term-underline:#6F6F6F;
+  --focus:#5B9BC7;
+  --seg-on:#383838;
+}
+
 .nz{
-  --text:#37352F; --muted:#787774; --faint:#9B9A97;
-  --divider:#E9E9E7; --hover:#F1F1EF; --panel:#F7F6F3;
   font-family:'Inter',ui-sans-serif,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
-  color:var(--text); background:#fff; line-height:1.5;
-  max-width:820px; margin:0 auto; padding:40px clamp(18px,4vw,40px) 60px;
-  -webkit-font-smoothing:antialiased;
+  color:var(--text); background:var(--bg); line-height:1.5;
+  max-width:820px; margin:0 auto; padding:24px clamp(18px,4vw,40px) 60px;
+  -webkit-font-smoothing:antialiased; position:relative;
+  transition:background-color .2s ease, color .2s ease;
 }
 .nz *{box-sizing:border-box;}
 
+.nz-topbar{display:flex; justify-content:flex-end; margin-bottom:14px;}
+.nz-theme{display:inline-flex; align-items:center; gap:2px; padding:3px; background:var(--panel); border:1px solid var(--divider); border-radius:9px; transition:background-color .2s ease, border-color .2s ease;}
+.nz-theme-btn{display:inline-flex; align-items:center; gap:6px; border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:500; color:var(--muted); padding:5px 10px; border-radius:6px; transition:background-color .14s ease, color .14s ease;}
+.nz-theme-btn svg{width:15px; height:15px; flex:0 0 auto;}
+.nz-theme-btn:hover{color:var(--text);}
+.nz-theme-btn.on{background:var(--seg-on); color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.14);}
+.nz-theme-btn:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+
 .nz-title{font-size:clamp(28px,5vw,40px); font-weight:700; letter-spacing:-.02em; line-height:1.15; margin:0 0 12px;}
-.nz-lead{font-size:15px; color:#5b5a56; max-width:670px; margin:0 0 26px;}
+.nz-lead{font-size:15px; color:var(--secondary); max-width:670px; margin:0 0 26px;}
 .nz-lead b{color:var(--text); font-weight:600;}
 
-.nz-props{display:grid; grid-template-columns:1fr 1fr; gap:2px 28px; padding:16px 18px; background:var(--panel); border-radius:10px; margin-bottom:22px;}
+.nz-props{display:grid; grid-template-columns:1fr 1fr; gap:2px 28px; padding:16px 18px; background:var(--panel); border-radius:10px; margin-bottom:22px; transition:background-color .2s ease;}
 .nz-prop{display:flex; align-items:baseline; gap:10px; padding:5px 0; min-width:0;}
 .nz-prop-label{flex:0 0 116px; font-size:13.5px; color:var(--muted); display:flex; align-items:center; gap:7px;}
 .nz-prop-value{font-size:13.5px; color:var(--text); font-weight:500; min-width:0;}
 .nz-emoji{font-size:14px;}
 
 .nz-callouts{display:flex; flex-direction:column; gap:10px; margin-bottom:30px;}
-.nz-callout{display:flex; gap:12px; padding:14px 16px; border-radius:10px; background:var(--panel);}
-.nz-callout.warn{background:#FBEEE6;}
-.nz-callout.info{background:#EEF1F4;}
+.nz-callout{display:flex; gap:12px; padding:14px 16px; border-radius:10px; background:var(--panel); transition:background-color .2s ease;}
+.nz-callout.warn{background:var(--callout-warn);}
+.nz-callout.info{background:var(--callout-info);}
 .nz-callout-emoji{font-size:18px; line-height:1.4; flex:0 0 auto;}
 .nz-callout-title{font-size:13.5px; font-weight:600; margin-bottom:3px;}
-.nz-callout-text{font-size:13.5px; color:#5b5a56;}
+.nz-callout-text{font-size:13.5px; color:var(--secondary);}
 
 .nz-filter{display:flex; flex-wrap:wrap; align-items:center; gap:7px; padding-bottom:22px; margin-bottom:8px; border-bottom:1px solid var(--divider);}
 .nz-filter-label{font-size:12px; color:var(--faint); margin-right:4px; text-transform:uppercase; letter-spacing:.06em;}
 .nz-tag-btn{display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none; font-family:inherit;
-  font-size:13px; font-weight:500; padding:4px 11px; border-radius:6px; background:#F1F1EF; color:#787774; transition:opacity .15s, transform .15s;}
+  font-size:13px; font-weight:500; padding:4px 11px; border-radius:6px; background:var(--btn-off-bg); color:var(--btn-off-fg); transition:opacity .15s, transform .15s, background-color .2s ease, color .2s ease;}
 .nz-tag-btn.off{opacity:.6;}
 .nz-tag-btn:hover{transform:translateY(-1px); opacity:1;}
-.nz-tag-btn:focus-visible{outline:2px solid #337EA9; outline-offset:2px;}
+.nz-tag-btn:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
 .nz-tag-dot{width:8px; height:8px; border-radius:50%;}
 
 .nz-timeline{list-style:none; margin:18px 0 0; padding:0;}
@@ -414,13 +579,13 @@ const css = `
 .nz-rail{position:relative; display:flex; justify-content:center;}
 .nz-rail::before{content:""; position:absolute; top:8px; bottom:0; width:1.5px; background:var(--divider);}
 .nz-leg:last-child .nz-rail::before{display:none;}
-.nz-node{position:relative; z-index:1; width:11px; height:11px; border-radius:50%; margin-top:6px; background:#fff; border:2px solid #C7C6C2;}
-.nz-leg.now .nz-node{border-color:#337EA9; background:#337EA9; box-shadow:0 0 0 4px rgba(51,126,169,.14);}
-.nz-leg.dest .nz-node{border-color:#37352F; background:#37352F; border-radius:2px; transform:rotate(45deg); margin-top:7px;}
+.nz-node{position:relative; z-index:1; width:11px; height:11px; border-radius:50%; margin-top:6px; background:var(--node-bg); border:2px solid var(--node-border); transition:background-color .2s ease, border-color .2s ease;}
+.nz-leg.now .nz-node{border-color:var(--now); background:var(--now); box-shadow:0 0 0 4px var(--now-glow);}
+.nz-leg.dest .nz-node{border-color:var(--dest); background:var(--dest); border-radius:2px; transform:rotate(45deg); margin-top:7px;}
 
 .nz-body{padding:0 0 28px 8px;}
 .nz-eyebrow{font-size:11.5px; font-weight:600; letter-spacing:.08em; color:var(--faint); text-transform:uppercase; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-.nz-now-tag{text-transform:none; letter-spacing:0; font-size:11px; font-weight:600; color:#0B6E99; background:#D3E5EF; padding:2px 8px; border-radius:5px;}
+.nz-now-tag{text-transform:none; letter-spacing:0; font-size:11px; font-weight:600; color:var(--now-strong); background:var(--now-tag-bg); padding:2px 8px; border-radius:5px;}
 .nz-leg-title{font-size:20px; font-weight:600; letter-spacing:-.01em; margin:5px 0 3px; display:flex; align-items:flex-start; gap:9px;}
 .nz-emoji-h{font-size:19px;}
 .nz-leg-note{font-size:13.5px; color:var(--muted); margin:0 0 13px;}
@@ -429,30 +594,33 @@ const css = `
 .nz-item{display:flex; gap:10px; padding:7px 8px 7px 6px; margin-left:-8px; border-radius:6px; transition:background .12s;}
 .nz-item:hover{background:var(--hover);}
 .nz-bullet{flex:0 0 auto; width:6px; height:6px; border-radius:50%; margin-top:9px;}
-.nz-item-text{font-size:14px; color:#2f2e2b; line-height:1.55;}
+.nz-item-text{font-size:14px; color:var(--item); line-height:1.55;}
 .nz-tag{display:inline-block; font-size:11.5px; font-weight:500; padding:1px 8px; border-radius:4px; margin-right:8px; vertical-align:1px; white-space:nowrap;}
-.nz-crit{display:inline-block; font-size:11px; font-weight:600; color:#B4332B; background:#FBE4E1; padding:1px 8px; border-radius:4px; margin-left:8px; white-space:nowrap;}
+.nz-crit{display:inline-block; font-size:11px; font-weight:600; color:var(--crit-fg); background:var(--crit-bg); padding:1px 8px; border-radius:4px; margin-left:8px; white-space:nowrap;}
 
 /* Termos com tooltip (posicionamento via @floating-ui em portal) */
-.term{border-bottom:1px dashed #9B9A97; cursor:help; text-decoration:none; color:inherit; border-radius:1px;}
-.term:focus-visible{outline:2px solid #337EA9; outline-offset:2px;}
+.term{border-bottom:1px dashed var(--term-underline); cursor:help; text-decoration:none; color:inherit; border-radius:1px;}
+.term:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
 .term-pop{
   width:max-content; max-width:280px;
-  background:#2B2A28; color:#fff; font-size:12.5px; font-weight:400; line-height:1.45; text-align:left;
+  background:var(--tooltip-bg); color:var(--tooltip-fg); font-size:12.5px; font-weight:400; line-height:1.45; text-align:left;
   text-transform:none; letter-spacing:0; white-space:normal;
-  padding:10px 12px; border-radius:9px; box-shadow:0 8px 26px rgba(0,0,0,.22);
+  padding:10px 12px; border-radius:9px; box-shadow:0 8px 26px rgba(0,0,0,.32);
   z-index:9999;
 }
+.term-arrow path{fill:var(--tooltip-bg);}
 
 .nz-foot{font-size:12.5px; color:var(--faint); line-height:1.6; margin-top:30px; padding-top:18px; border-top:1px solid var(--divider);}
 
 @media (max-width:560px){
-  .nz{padding:30px 16px 46px;}
+  .nz{padding:18px 16px 46px;}
   .nz-props{grid-template-columns:1fr;}
   .nz-prop-label{flex-basis:104px;}
+  .nz-theme-label{display:none;}
+  .nz-theme-btn{padding:6px 8px;}
   .term-pop{max-width:240px;}
 }
 @media (prefers-reduced-motion: reduce){
-  .nz-tag-btn, .nz-item{transition:none;}
+  .nz, .nz-props, .nz-callout, .nz-node, .nz-theme, .nz-theme-btn, .nz-tag-btn, .nz-item{transition:none;}
 }
 `;
